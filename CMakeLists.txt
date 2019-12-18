@@ -10,5 +10,5 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package( OpenCV REQUIRED )
 
-add_executable(LegoDetector main.cpp)
+add_executable(LegoDetector src/utils.hpp src/main.cpp)
 target_link_libraries(LegoDetector ${OpenCV_LIBS})

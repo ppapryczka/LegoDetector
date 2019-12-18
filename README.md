@@ -1,7 +1,7 @@
-# NewspaperLegoDetector
+# LegoDetector
 
 
-# Linux installation:
+## Linux installation:
 
 1. Follow this steps to get OpenCv2:
 https://docs.opencv.org/trunk/d7/d9f/tutorial_linux_install.html
