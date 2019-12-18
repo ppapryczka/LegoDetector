@@ -6,38 +6,48 @@
 #include "utils.hpp"
 
 
-int main(int argc, char** argv )
-{
-    cvtColorRGBtoHSV(140, 56, 137);
-    std::string name = "test.png";
+int main(int argc, char** argv)
+{    
+    for ( auto n : test_files_names_2){
+        cv::Mat img = cv::imread(n);
 
-    cv::Mat image = cv::imread(name);
+        img = cvtImgColors(img, &cvtColorRGBToHSVOpenCVScale);
 
-    cv::cvtColor(image, image, cv::COLOR_BGR2HSV);
+        img = rankFilter(img, 5, 5, 8);
 
+        cv::Mat pickPixelsResult = pickPixels(img, filterHSV1);
+        cv::cvtColor(pickPixelsResult, pickPixelsResult, cv::COLOR_HSV2BGR);
 
-    /*
-    for ( auto n : test_files_names){
-        cv::Mat image = cv::imread(n);
-        cv::Mat out;
-
-        double scale = 0.15;
-        int width = static_cast<int>(image.cols *scale);
-        int height = static_cast<int>(image.rows *scale);
-
-        cv::resize(image, out, cv::Size(width, height));
-
-        cv::Mat res = rankFilter(out, 7, 7, 45);
-
-        cv::namedWindow("Result", cv::WINDOW_AUTOSIZE );
-        cv::imshow("Result", res);
-
-        //cv::namedWindow("Original", cv::WINDOW_AUTOSIZE );
-        //cv::imshow("Original", image);
-
-        cv::waitKey(0);
+        cv::imwrite("test"+n, pickPixelsResult);
+        std::cout<<n<<"\n";
     }
-    */
 
+    std::cout<<"We are on a mission from God!\n";
     return 0;
 }
+
+/*
+Notes:
+
+// 1
+cv::Mat img = cv::imread("pure.png");
+cv::Mat copy;
+
+cv::cvtColor(img, copy, cv::COLOR_BGR2HSV);
+
+img = cvtImgColors(img, &cvtColorRGBToHSVOpenCVScale);
+
+
+// 2
+cv::Mat img = cv::imread("pure.png");
+cv::Mat copy;
+
+cv::cvtColor(img, copy, cv::COLOR_BGR2HSV);
+
+img = cvtImgColors(img, &cvtColorRGBToHSVOpenCVScale);
+
+cv::Mat pickColors = pickPixels(img, filterHSV1);
+cv::cvtColor(pickColors, pickColors, cv::COLOR_HSV2BGR);
+
+cv::imwrite("new_pure.png",pickColors);
+*/
