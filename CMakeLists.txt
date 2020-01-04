@@ -13,6 +13,8 @@ set( SOURCE_FILES
     src/utils.hpp
     src/PixelPicker.hpp
     src/PixelPicker.cpp
+    src/color_cvt.hpp
+    src/segmentation.hpp
     )
 
 set( TEST_FILES

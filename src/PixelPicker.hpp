@@ -21,6 +21,10 @@ public:
     bool isCorrectPixel(uint8_t h, uint8_t s, uint8_t v) const;
 };
 
-const HSVPixelPicker filterHSV1(4, 12, 140, 220, 80, 200);
+//const HSVPixelPicker filterHSV1(1, 15, 140, 220, 80, 200);
+const HSVPixelPicker filterHSV1(2, 20, 120, 220, 80, 200);
+
+// max h <1, 15>
+
 
 #endif // PIXELPICKER_HPP

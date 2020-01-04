@@ -4,12 +4,15 @@
 // opencv
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/core/types.hpp>
 
 // std
 #include <exception>
 #include <limits>
 #include <iostream>
 #include <fstream>
+#include <unordered_set>
+
 
 // lego
 #include "PixelPicker.hpp"
@@ -37,17 +40,7 @@ const std::vector<std::string> test_files_names_2 = {
     "gazeta3_3.JPG"
 };
 
-// own scale, use by DuckDuckGO for example, but hue divided by 2
-const unsigned int HUE_SCALE = 30; // should be 60
-const unsigned int VALUE_SCALE = 100;
-const unsigned int SATURATION_SCALE = 100;
-
-// scale use by OpenCV
-const unsigned int HUE_SCALE_OPENCV = 2;
-const unsigned int VALUE_SCALE_OPENCV = 255;
-const unsigned int SATURATION_SCALE_OPENCV = 255;
-
-typedef std::vector<uint8_t> (*cvtColorFuntion)(uint8_t r, uint8_t g, uint8_t b);
+using PixelsMap = std::vector<std::vector<bool>>;
 
 /**
  * @brief rankFilter Converts given image using neighbours and brightness information.
@@ -111,116 +104,44 @@ cv::Mat rankFilter(const cv::Mat& img, int width, int height, unsigned int rank)
     return res;
 }
 
-/**
- * @details cvtColorRGBtoHSV Convert BGR color to HSV color - for details look:
- * https://docs.opencv.org/2.4/modules/imgproc/doc/miscellaneous_transformations.html
- * This version uses own color scale.
- * @param r Red color value.
- * @param g Green color value.
- * @param b Blue color value.
- * @return HSV color as a vector.
- */
-std::vector<uint8_t> cvtColorRGBToHSVOwnScale(uint8_t r, uint8_t g, uint8_t b){
-    float r_ = r/static_cast<float>(std::numeric_limits<uint8_t>::max());
-    float g_ = g/static_cast<float>(std::numeric_limits<uint8_t>::max());
-    float b_ = b/static_cast<float>(std::numeric_limits<uint8_t>::max());
-    float max = std::max({r_, g_, b_});
-    float min = std::min({r_, g_, b_});
-    float delta = max - min;
 
-    float hue, value, saturation;
-
-    // hue
-    if (max == r_){
-        hue =(g_ - b_)/delta;
-    } else if (max == g_){
-        hue = 2 + (b_ - r_)/delta;
-    } else {
-        hue = 4 + (r_ - g_)/delta;
-    }
-
-    // saturation
-    if (max == 0){
-        saturation = 0;
-    } else {
-        saturation = delta/max;
-    }
-
-    // value
-    value = max;
-
-    hue = std::round(hue*HUE_SCALE);
-    saturation = std::round(saturation*SATURATION_SCALE);
-    value = std::round(value*VALUE_SCALE);
-
-    if (hue<0){
-        hue+=180;
-    }
-
-    return {static_cast<uint8_t>(hue), static_cast<uint8_t>(saturation), static_cast<uint8_t>(value)};
-}
-
-/**
- * @details cvtColorRGBtoHSV Convert BGR color to HSV color - for details look:
- * https://docs.opencv.org/2.4/modules/imgproc/doc/miscellaneous_transformations.html
- * This version uses OpenCV color scale.
- * @param r Red color value.
- * @param g Green color value.
- * @param b Blue color value.
- * @return HSV color as a vector.
- */
-std::vector<uint8_t> cvtColorRGBToHSVOpenCVScale(uint8_t r, uint8_t g, uint8_t b){
-    // run convert value to own scale
-    auto color = cvtColorRGBToHSVOwnScale(r, g, b);
-
-    // convert values to OpenCV scale
-    uint8_t hue = static_cast<uint8_t>(color[0]/static_cast<float>(HUE_SCALE_OPENCV));
-    uint8_t saturation = static_cast<uint8_t>((color[1]/static_cast<float>(SATURATION_SCALE))*(SATURATION_SCALE_OPENCV));
-    uint8_t value = static_cast<uint8_t>((color[2]/static_cast<float>(VALUE_SCALE))*(VALUE_SCALE_OPENCV));
-
-    return {hue, saturation, value};
-}
-
-/**
- * @brief cvtImgColors Covert image using given convert pixel color function.
- * @param img Image to convertion.
- * @param cvtFunc Function that convert 3 channel image pixel.
- * @return Converted image.
- */
-cv::Mat cvtImgColors(const cv::Mat& img, cvtColorFuntion cvtFunc){
-    // create copy
-    cv::Mat res(img.rows, img.cols, CV_8UC3);
-
-    // get iterators
-    cv::Mat_<cv::Vec3b> new_iter = res;
+PixelsMap pickPixels(const cv::Mat& img, const PixelPicker& pp){
+    // get iterator
     cv::Mat_<cv::Vec3b> original_iter = img;
 
-    for (int i = 0; i < img.rows ; ++i){
-        for (int j = 0; j < img.cols; ++j) {
-            auto color = cvtFunc(original_iter(i,j)[2], original_iter(i, j)[1], original_iter(i, j)[0]);
-            new_iter(i, j)[0] = color[0];
-            new_iter(i, j)[1] = color[1];
-            new_iter(i, j)[2] = color[2];
-        }
-    }
-
-    return res;
-}
-
-cv::Mat pickPixels(const cv::Mat& img, const PixelPicker& pp){
-    // create copy
-    cv::Mat res(img.rows, img.cols, CV_8UC3);
-
-    // get iterators
-    cv::Mat_<cv::Vec3b> new_iter = res;
-    cv::Mat_<cv::Vec3b> original_iter = img;
+    PixelsMap pixelsMap(img.rows);
 
     for (int i = 0; i < img.rows ; ++i){
         for (int j = 0; j < img.cols; ++j) {
             if(pp.isCorrectPixel(original_iter(i, j)[0], original_iter(i, j)[1], original_iter(i, j)[2])){
-                new_iter(i, j)[0] = 0;
-                new_iter(i, j)[1] = 255;
-                new_iter(i, j)[2] = 255;
+                pixelsMap[i].emplace_back(true);
+                //pixels.emplace(cv::Point2i(i, j));
+            }else{
+                pixelsMap[i].emplace_back(false);
+            }
+        }
+    }
+
+
+    return pixelsMap;
+}
+
+
+cv::Mat colorGivenPixels(const cv::Mat& img, const PixelsMap& pixelsMap, std::vector<uint8_t> color = {255, 0, 0}){
+    // create copy
+    cv::Mat res(img.rows, img.cols, CV_8UC3);
+
+    // get iterators
+    cv::Mat_<cv::Vec3b> new_iter = res;
+    cv::Mat_<cv::Vec3b> original_iter = img;
+
+
+    for (int i = 0; i < img.rows ; ++i){
+        for (int j = 0; j < img.cols; ++j) {
+            if(pixelsMap[i][j]){
+                new_iter(i, j)[0] = color[0];
+                new_iter(i, j)[1] = color[1];
+                new_iter(i, j)[2] = color[2];
             } else {
                 new_iter(i, j)[0] = original_iter(i,j)[0];
                 new_iter(i, j)[1] = original_iter(i,j)[1];
@@ -229,8 +150,96 @@ cv::Mat pickPixels(const cv::Mat& img, const PixelPicker& pp){
         }
     }
 
+
     return res;
 }
+
+PixelsMap closing(const PixelsMap& pixMap, int width, int height){
+    // check arguments
+
+    PixelsMap copy;
+
+    if(width<0 || height<0){
+        throw std::runtime_error("");
+    }
+    else if(height%2 == 0 || width%2 == 0){
+        throw std::runtime_error("Filter size not odd!");
+    }
+
+    for (int i = 0; i < pixMap.size(); ++i){
+        copy.emplace_back(std::vector<bool>());
+        for (int j = 0; j < pixMap[i].size(); ++j) {
+
+            if (!(i < (height / 2) || i>= (pixMap.size()- height / 2) || j < (width / 2) || j>=(pixMap[i].size() - width / 2))){
+                bool found = false;
+                for (int row = i - height/2; row<=i + height/2; ++row){
+                    for (int col = j - width / 2; col <= j + width / 2; ++col) {
+                        if ( pixMap[row][col]){
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+
+                if(found){
+                    copy[i].emplace_back(true);
+                } else{
+                    copy[i].emplace_back(false);
+                }
+
+            } else {
+                copy[i].emplace_back(pixMap[i][j]);
+            }
+        }
+    }
+
+    return copy;
+};
+
+
+PixelsMap opening(const PixelsMap& pixMap, int width, int height){
+    // check arguments
+
+    PixelsMap copy;
+
+    if(width<0 || height<0){
+        throw std::runtime_error("");
+    }
+    else if(height%2 == 0 || width%2 == 0){
+        throw std::runtime_error("Filter size not odd!");
+    }
+
+    for (int i = 0; i < pixMap.size(); ++i){
+        copy.emplace_back(std::vector<bool>());
+        for (int j = 0; j < pixMap[i].size(); ++j) {
+
+            if (!(i < (height / 2) || i>= (pixMap.size()- height / 2) || j < (width / 2) || j>=(pixMap[i].size() - width / 2))){
+                bool found = false;
+                for (int row = i - height/2; row<=i + height/2; ++row){
+                    for (int col = j - width / 2; col <= j + width / 2; ++col) {
+                        if ( pixMap[row][col] == false){
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+
+                if(found){
+                    copy[i].emplace_back(false);
+                } else{
+                    copy[i].emplace_back(true);
+                }
+
+            } else {
+                copy[i].emplace_back(pixMap[i][j]);
+            }
+        }
+    }
+
+    return copy;
+};
+
+
 
 /**
  * @brief showImgAndWait Show image and wait for ESC key.
@@ -258,7 +267,7 @@ void saveImgColorsToCSV(const cv::Mat& img, std::string csvName = "colors.csv"){
     for (int i = 0; i < img.rows ; ++i){
         for (int j = 0; j < img.cols; ++j) {
             if(!(original_iter(i, j)[0]==0 && original_iter(i, j)[1]==0 && original_iter(i, j)[2]==255)){
-                file<<int(original_iter(i, j)[0])<<";"<<int(original_iter(i, j)[1])<<";"<<int(original_iter(i, j)[2])<<";\n";
+                file<<int(original_iter(i, j)[0])<<";"<<int(original_iter(i, j)[1])<<";"<<int(original_iter(i, j)[2])<<"\n";
             }
         }
     }
