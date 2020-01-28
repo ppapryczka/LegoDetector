@@ -18,7 +18,9 @@ void proccessImage(std::string inputImg, std::string outputImg, int minSegSize, 
     cv::Mat orginal_img = cv::imread(inputImg);
 
     // filter img
-    cv::Mat filter_img = rankFilter(orginal_img, 5, 5, 5);
+    cv::Mat filter_img = rankFilter(orginal_img, DEFUALT_PIX_CHOOSE_WIDTH,
+                                    DEFUALT_PIX_CHOOSE_HEIGHT,
+                                    DEFAULT_RANL_FILTER_RANK);
     // save filter img
     if(step_mode)
         cv::imwrite("rank_filter_"+outputImg, filter_img);
@@ -27,7 +29,10 @@ void proccessImage(std::string inputImg, std::string outputImg, int minSegSize, 
     auto res = cvtImgColorsToGIMPHSV(filter_img);
 
     // chose pixels
-    auto pixels = neighbourAwarePixelPicker(res, FILTER_GIMP, 31, 31, 0.6f);
+    auto pixels = neighbourAwarePixelPicker(res, FILTER_GIMP,
+                                            DEFUALT_PIX_CHOOSE_WIDTH,
+                                            DEFUALT_PIX_CHOOSE_HEIGHT,
+                                            DEFUALT_PIX_CHOOSE_PERCENT);
     // save pixels img
     if(step_mode){
         auto tmp = colorGivenPixelMap(filter_img, pixels);

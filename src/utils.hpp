@@ -16,6 +16,15 @@
 // lego
 #include "PixelPicker.hpp"
 
+const int DEFUALT_RANK_FILTER_WIDTH = 5;
+const int DEFUALT_RANK_FILTER_HEIGHT = 5;
+const int DEFAULT_RANL_FILTER_RANK =5;
+
+const int DEFUALT_PIX_CHOOSE_WIDTH = 31;
+const int DEFUALT_PIX_CHOOSE_HEIGHT = 31;
+const float DEFUALT_PIX_CHOOSE_PERCENT = 0.6f;
+
+
 
 const std::vector<std::string> TEST_FILES_NAMES = {
     "koc_1.JPG",

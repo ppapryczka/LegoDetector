@@ -22,6 +22,7 @@ set( TEST_FILES
     tests/catch2.hpp
     tests/test_utils.cpp
     tests/test_main.cpp
+    tests/test_color_cvt.cpp
     )
 
 
