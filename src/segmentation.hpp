@@ -116,11 +116,11 @@ std::vector<Segment> findSegments(const PixelsMap& pixels){
 };
 
 /**
- * @brief colorSegmentWithRandomColor Take random color for each segment and color with it segment pixels.
+ * @brief colorSegmentsWithRandomColor Take random color for each segment and color with it segment pixels.
  * @param img Image in which will be placed segment pixels.
  * @param segments Vector of segments.
  */
-void colorSegmentWithRandomColor(cv::Mat& img, const std::vector<Segment>& segments){
+void colorSegmentsWithRandomColor(cv::Mat& img, const std::vector<Segment>& segments){
     cv::Mat_<cv::Vec3b> iter = img;
 
     for(auto seg : segments){
@@ -145,11 +145,11 @@ void colorSegmentWithRandomColor(cv::Mat& img, const std::vector<Segment>& segme
  * @param original Vector of segments to chose.
  * @return Vector with subset of segments from original.
  */
-std::vector<Segment> removeAdditionalSegments(int min_size, int max_size, const std::vector<Segment>& original){
+std::vector<Segment> removeAdditionalSegments(int min_size, const std::vector<Segment>& original){
     std::vector<Segment> result;
 
     for (auto s : original){
-        if(s.pixels.size()>min_size && s.pixels.size()<max_size){
+        if(s.pixels.size()>min_size){
             result.push_back(s);
         }
     }
