@@ -18,9 +18,9 @@ void proccessImage(std::string inputImg, std::string outputImg, int minSegSize, 
     cv::Mat orginal_img = cv::imread(inputImg);
 
     // filter img
-    cv::Mat filter_img = rankFilter(orginal_img, DEFUALT_PIX_CHOOSE_WIDTH,
-                                    DEFUALT_PIX_CHOOSE_HEIGHT,
-                                    DEFAULT_RANL_FILTER_RANK);
+    cv::Mat filter_img = rankFilter(orginal_img, DEFUALT_RANK_FILTER_WIDTH,
+                                    DEFUALT_RANK_FILTER_HEIGHT ,
+                                    DEFAULT_RANK_FILTER_RANK);
     // save filter img
     if(step_mode)
         cv::imwrite("rank_filter_"+outputImg, filter_img);
