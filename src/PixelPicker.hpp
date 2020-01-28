@@ -1,30 +1,69 @@
+/**
+  * Header file for PixelPicker class, which can be use to choose pixels from image.
+  */
+
 #ifndef PIXELPICKER_HPP
 #define PIXELPICKER_HPP
 
 #include<cstdint>
 
+/**
+ * @class PixelPicker
+ * @brief The PixelPicker class - abstract class to decide if color is valid.
+ */
 class PixelPicker
 {
 public:
-    virtual bool isCorrectPixel(uint8_t c1, uint8_t c2, uint8_t c3) const = 0;
+    /**
+     * @brief isCorrectPixel Check if given color(c1, c2, c3) is valid.
+     * @param c1 First color channel.
+     * @param c2 Second color channel.
+     * @param c3 Thirs color channel.
+     * @return True of color is valide, false otherwise.
+     */
+    virtual bool isCorrectPixel(float c1, float c2, float c3) const = 0;
+    /**
+     * @brief ~PixelPicker - dummy virtual destructor.
+     */
     virtual ~PixelPicker();
 };
 
+/**
+ * @class HSVPixelPicker
+ * @brief The HSVPixelPicker class - class appropirate to valid HSV colors by
+ * ranges of each channel.
+ */
+
 class HSVPixelPicker : public PixelPicker{
 private:
-    uint8_t minH, maxH;
-    uint8_t minS, maxS;
-    uint8_t minV, maxV;
+    float minH, maxH;
+    float minS, maxS;
+    float minV, maxV;
 
 public:
-    HSVPixelPicker(uint8_t minH, uint8_t maxH, uint8_t minS, uint8_t maxS, uint8_t minV, uint8_t maxV);
-    bool isCorrectPixel(uint8_t h, uint8_t s, uint8_t v) const;
+    /**
+     * @brief HSVPixelPicker construct that only sets class fields.
+     * @param minH Minimal H value.
+     * @param maxH Maximal H value.
+     * @param minS Minimal S value.
+     * @param maxS Maximal S value.
+     * @param minV Minimal V value.
+     * @param maxV Maximal V value.
+     */
+    HSVPixelPicker(float minH, float maxH, float minS, float maxS, float minV, float maxV);
+
+    /**
+     * @brief isCorrectPixel Check color by given in constructor ranges.
+     * @param h H(hue) value.
+     * @param s S(saturation) value.
+     * @param v V(value) value.
+     * @return True if color is in given ranges, false otherwise.
+     */
+    bool isCorrectPixel(float h, float s, float v) const;
 };
 
-//const HSVPixelPicker filterHSV1(1, 15, 140, 220, 80, 200);
-const HSVPixelPicker filterHSV1(2, 20, 120, 220, 80, 200);
 
-// max h <1, 15>
-
+// picker for HSV in scale ised by GIMP program
+const HSVPixelPicker FILTER_GIMP = HSVPixelPicker(14, 40, 40, 100, 20, 90);
 
 #endif // PIXELPICKER_HPP

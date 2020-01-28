@@ -1,3 +1,8 @@
+/**
+  * Few functions to convert color scale to HSV.
+  * #TODO - code duplications!
+  */
+
 #ifndef COLOR_CVT_HPP
 #define COLOR_CVT_HPP
 
@@ -9,6 +14,8 @@
 #include <cstdint>
 #include <iostream>
 
+// DEFINITIONS OF COLOR SCALES WHEN CONVERT TO HSV
+
 // own scale, use by DuckDuckGO for example, but hue divided by 2
 const unsigned int HUE_SCALE = 2; // should be 1
 const unsigned int VALUE_SCALE = 100;
@@ -18,6 +25,11 @@ const unsigned int SATURATION_SCALE = 100;
 const unsigned int HUE_SCALE_OPENCV = 2;
 const unsigned int VALUE_SCALE_OPENCV = 255;
 const unsigned int SATURATION_SCALE_OPENCV = 255;
+
+// GIMP scale
+const unsigned int HUE_SCALE_GIMP = 1;
+const unsigned int VALUE_SCALE_GIMP = 100;
+const unsigned int SATURATION_SCALE_GIMP = 100;
 
 
 typedef std::vector<uint8_t> (*cvtColorFuntion)(uint8_t r, uint8_t g, uint8_t b);
@@ -42,12 +54,16 @@ std::vector<double> cvtColorBGRToHSV(uint8_t b, uint8_t g, uint8_t r){
     double hue, value, saturation;
 
     // hue
-    if (max == r_){
-        hue =60.0*(g_ - b_)/delta;
-    } else if (max == g_){
-        hue = 120.0 + 60.0*(b_ - r_)/delta;
+    if (delta!=0){
+        if (max == r_){
+            hue =60.0*(g_ - b_)/delta;
+        } else if (max == g_){
+            hue = 120.0 + 60.0*(b_ - r_)/delta;
+        } else {
+            hue = 240.0 + 60.0*(r_ - g_)/delta;
+        }
     } else {
-        hue = 240.0 + 60.0*(r_ - g_)/delta;
+        hue = 0.0;
     }
 
     // saturation
@@ -196,6 +212,30 @@ cv::Mat cvtImgColors(const cv::Mat& img, cvtColorFuntion cvtFunc){
             new_iter(i, j)[0] = color[0];
             new_iter(i, j)[1] = color[1];
             new_iter(i, j)[2] = color[2];
+        }
+    }
+
+    return res;
+}
+
+/**
+ * @brief cvtImgColorsToGIMPHSV Convert image color to GIMP scale: 0<H<360, 0<S<100, 0<V<100.
+ * @param img Image to convert
+ * @return Converted image, 3 float channel image!
+ */
+cv::Mat cvtImgColorsToGIMPHSV(const cv::Mat& img){
+    cv::Mat res(img.rows, img.cols, CV_32FC3);
+
+    // get iterators
+    cv::Mat_<cv::Vec3b> original_iter = img;
+    cv::Mat_<cv::Vec3f> new_iter = res;
+
+    for (int i = 0; i < img.rows ; ++i){
+        for (int j = 0; j < img.cols; ++j) {
+            auto color = cvtColorBGRToHSV(original_iter(i,j)[0], original_iter(i, j)[1], original_iter(i, j)[2]);
+            new_iter(i, j)[0] = color[0]*HUE_SCALE_GIMP;
+            new_iter(i, j)[1] = color[1]*SATURATION_SCALE_GIMP;
+            new_iter(i, j)[2] = color[2]*VALUE_SCALE_GIMP;
         }
     }
 

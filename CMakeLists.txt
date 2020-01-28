@@ -15,6 +15,7 @@ set( SOURCE_FILES
     src/PixelPicker.cpp
     src/color_cvt.hpp
     src/segmentation.hpp
+    src/moments.hpp
     )
 
 set( TEST_FILES

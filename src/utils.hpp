@@ -13,20 +13,11 @@
 #include <fstream>
 #include <unordered_set>
 
-
 // lego
 #include "PixelPicker.hpp"
 
-const std::vector<std::string> test_files_names_1 = {
-    "DSC_6266.JPG",
-    "DSC_6267.JPG",
-    "DSC_6268.JPG",
-    "DSC_6269.JPG",
-    "DSC_6270.JPG",
-    "DSC_6271.JPG"
-};
 
-const std::vector<std::string> test_files_names_2 = {
+const std::vector<std::string> TEST_FILES_NAMES = {
     "koc_1.JPG",
     "koc_2.JPG",
     "koc_3.JPG",
@@ -41,6 +32,8 @@ const std::vector<std::string> test_files_names_2 = {
 };
 
 using PixelsMap = std::vector<std::vector<bool>>;
+
+const std::string BLUEST_QUOTE =std::string("We are on a mission from God!");
 
 /**
  * @brief rankFilter Converts given image using neighbours and brightness information.
@@ -104,10 +97,15 @@ cv::Mat rankFilter(const cv::Mat& img, int width, int height, unsigned int rank)
     return res;
 }
 
-
+/**
+ * @brief pickPixels Pick pixels from image using given PixelPicker.
+ * @param img Iamge to take pixels from.
+ * @param pp Pixel validator.
+ * @return Pixel map of true and false values.
+ */
 PixelsMap pickPixels(const cv::Mat& img, const PixelPicker& pp){
     // get iterator
-    cv::Mat_<cv::Vec3b> original_iter = img;
+    cv::Mat_<cv::Vec3f> original_iter = img;
 
     PixelsMap pixelsMap(img.rows);
 
@@ -127,7 +125,63 @@ PixelsMap pickPixels(const cv::Mat& img, const PixelPicker& pp){
 }
 
 
-cv::Mat colorGivenPixels(const cv::Mat& img, const PixelsMap& pixelsMap, std::vector<uint8_t> color = {255, 0, 0}){
+/**
+ * @brief neighbourAwarePixelPicker Pick pixel using local information.
+ * @param img Soucre image.
+ * @param pp Pixel validator.
+ * @param width Width of neighbours window.
+ * @param height Height of neighbours window.
+ * @param percent Percent of chosen pixel in  neighbours window.
+ * @return Pixels map of rue and flase values.
+ */
+PixelsMap neighbourAwarePixelPicker(const cv::Mat& img, const PixelPicker& pp, int width, int height, float percent){
+    // check arguments
+    if(width<0 || height<0){
+        throw std::runtime_error("");
+    }
+    else if(height%2 == 0 || width%2 == 0){
+        throw std::runtime_error("Filter size not odd!");
+    }
+
+    cv::Mat_<cv::Vec3b> original_iter = img;
+
+    PixelsMap pixelsMap(img.rows);
+
+
+    for (int i = 0; i < img.rows ; ++i){
+        for (int j = 0; j < img.cols; ++j) {
+
+            // copy not change pixels
+            if (i < (height / 2) || i>= (img.rows - height / 2) || j < (width / 2) || j>=(img.cols - width / 2)){
+                pixelsMap[i].emplace_back(false);
+                continue;
+            }
+            // execute filter for other pixels
+            else {
+                int num = 0;
+                for (int row = i - height/2; row<=i + height/2; ++row)
+                {
+                    for (int col = j - width / 2; col <= j + width / 2; ++col) {
+                        if(pp.isCorrectPixel(original_iter(row, col)[0], original_iter(row, col)[1], original_iter(row, col)[2])){
+                            ++num;
+                        }
+                    }
+                }
+
+                if (static_cast<float>(num)/static_cast<float>(width * height)>percent){
+                    pixelsMap[i].emplace_back(true);
+                } else{
+                    pixelsMap[i].emplace_back(false);
+                }
+            }
+        }
+    }
+    return pixelsMap;
+}
+/**
+  *
+  */
+cv::Mat colorGivenPixelMap(const cv::Mat& img, const PixelsMap& pixelsMap, std::vector<uint8_t> color = {255, 0, 0}){
     // create copy
     cv::Mat res(img.rows, img.cols, CV_8UC3);
 
@@ -153,7 +207,13 @@ cv::Mat colorGivenPixels(const cv::Mat& img, const PixelsMap& pixelsMap, std::ve
 
     return res;
 }
-
+/**
+ * @brief closing
+ * @param pixMap
+ * @param width
+ * @param height
+ * @return
+ */
 PixelsMap closing(const PixelsMap& pixMap, int width, int height){
     // check arguments
 
@@ -246,7 +306,6 @@ PixelsMap opening(const PixelsMap& pixMap, int width, int height){
  * @param img Image to display.
  * @param name Name of display window, default: image.
  */
-
 void showImgAndWait(const cv::Mat& img, std::string name = "image" ){
     cv::namedWindow( name, cv::WINDOW_NORMAL );
     cv::imshow(name, img);
@@ -263,11 +322,11 @@ void showImgAndWait(const cv::Mat& img, std::string name = "image" ){
 void saveImgColorsToCSV(const cv::Mat& img, std::string csvName = "colors.csv"){
     std::fstream file(csvName, std::ios::out);
 
-    cv::Mat_<cv::Vec3b> original_iter = img;
+    cv::Mat_<cv::Vec3f> original_iter = img;
     for (int i = 0; i < img.rows ; ++i){
         for (int j = 0; j < img.cols; ++j) {
             if(!(original_iter(i, j)[0]==0 && original_iter(i, j)[1]==0 && original_iter(i, j)[2]==255)){
-                file<<int(original_iter(i, j)[0])<<";"<<int(original_iter(i, j)[1])<<";"<<int(original_iter(i, j)[2])<<"\n";
+                file<<float(original_iter(i, j)[0])<<";"<<float(original_iter(i, j)[1])<<";"<<float(original_iter(i, j)[2])<<"\n";
             }
         }
     }
